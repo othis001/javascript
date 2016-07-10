@@ -12,7 +12,7 @@
 /* Global variables.*/
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
-var theboard; // Our board class. This is needed as a global variable for the intervals.
+var theboard; // Our board object. This is needed as a global variable for the intervals.
 
 /* Flags that are set when various things are happening. */
 var evaling = 0; // Flag to set if we are evaluating the board.
@@ -30,17 +30,8 @@ function board() // The class for the game.
 
     /* We store the game pieces in a 17 by 10 array with padding. */
     this.B = new Array(17);
-    for(i = 0; i < 17; i++)
-    {
-        this.B[i] = new Array(10);
-    }
-    for(i = 0; i < 17; i++)
-    {
-        for(j = 0; j < 10; j++)
-        {
-            this.B[i][j] = ' ';
-        }
-    }
+    for(i = 0; i < 17; i++) this.B[i] = new Array(10);
+    for(i = 0; i < 17; i++) for(j = 0; j < 10; j++) this.B[i][j] = ' ';
 
     /* Padding for the sides. */
     for(i = 0; i < 17; i++)
@@ -56,9 +47,8 @@ function board() // The class for the game.
     }
 
     /* Here we initalize a support array. The purpose of this array is to
-       keep track of pieces that are supported from the left. If we place
-       a horizontal piece, the corresponding coordinate in this array
-       will have a 1 if it is the right piece.
+       keep track of pieces that are supported from the right. If we place
+       a horizontal piece, the coordinate for the left piece will be set to 1.
     */
     this.support = new Array(17);
     for(i = 0; i < 17; i++) this.support[i] = new Array(10);
@@ -80,7 +70,7 @@ function board() // The class for the game.
     this.B[15][5] = 'G'; this.B[15][6] = 'B'; this.B[15][7] = 'R';
 };
 
-/* This function animates the viruses by having them switch between 2 pngs. */
+/* This function animates the viruses by having them "randomly" switch between 2 pngs. */
 board.prototype.animate = function()
 {
     var i, j, counter;
@@ -246,7 +236,7 @@ board.prototype.movedown = function()
 
     if(stuck == 1) // We are stuck.
     {
-        /* Store that the right ball is supported by the left. */
+        /* Store that the left ball is supported from the right. */
         if(this.p_mode%2 == 0) this.support[ this.p_r ][ this.p_c ] = 1;
         
         /* Now evaluate the board. */
@@ -264,8 +254,9 @@ board.prototype.evalBoard = function()
     for(i = 0; i < 17; i++) C[i] = new Array(10);
     for(i = 0; i < 17; i++) for(j = 0; j < 10; j++) C[i][j] = 0;
 
-    /* These loops remove all positions that have four or more in a row of the
-       same color first horizontally and then vertically.
+    /* These loops mark all positions that have four or more in a row of the
+       same color first horizontally and then vertically. We have to do it
+       this way in case an added ball will form a row AND column of 4 or more.
     */
 
     for(i = 0; i < 17; i++)
@@ -336,7 +327,7 @@ board.prototype.evalBoard = function()
 
     if(killed == 1) // We killed some viruses.
     {
-        /* See if there are any left and if we won. */
+        /* See if there are any viruses left. */
         var infected = 0;
         for(i = 0; i < 16; i++)
         {
@@ -421,7 +412,7 @@ board.prototype.fall = function()
 
     this.drawBoard();
 
-    if(fell == 0) // Keep calling this every 1 second until no more balls drop.
+    if(fell == 0) // We keep calling this function every 1 second until no more balls drop.
     {
         clearInterval(falling);
         this.evalBoard();
@@ -486,7 +477,7 @@ board.prototype.rotate = function()
     {
         this.p_mode = (this.p_mode + 1)%4;
         
-        if(this.p_mode%2 == 0)
+        if(this.p_mode%2 == 0) // Piece is horizontal
         {
             if(this.B[ this.p_r ][ this.p_c + 1 ] == ' ')
             {
@@ -498,7 +489,7 @@ board.prototype.rotate = function()
                 ok = 1;
             } 
         }
-        else
+        else // Piece is vertical.
         {
             temp = this.p_color[0];
             this.p_color[0] = this.p_color[1];
