@@ -1,6 +1,6 @@
 # Javascript Samples
 
-This is a collection of javascript programs.
+This is a collection of some of my javascript programs.
 
 ## drMario
 
