@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head><title>Coding Sample</title>
+</head>
+
+<body>
+<canvas id="canvas" width="640" height="640"></canvas>
+<script type="text/javascript">
+
+/* This is a javascript program for graphing functions. By Oliver Thistlethwaite. */
+function graph() {
+
+  this.canvas = document.getElementById("canvas");
+  this.context = this.canvas.getContext("2d");
+  this.width = this.canvas.width;
+  this.height = this.canvas.height;
+ 
+  // These are variables the user can change to affect what is graphed.  
+  this.xmin = -11;
+  this.xmax = 11;
+  this.ymin = -11;
+  this.ymax = 11;
+  this.ticksize = 20; // The length of the tick marks on the axes in pixels.
+  this.dx = 0.01 // The distance between sample points chosen.
+
+  this.xrange = this.xmax - this.xmin;
+  this.yrange = this.ymax - this.ymin;
+}
+
+// This function draws the x and y axes.
+graph.prototype.drawAxes = function()
+{
+  var context = this.context; var width = this.width; var height = this.height;
+  var ticksize = this.ticksize; var yrange = this.yrange; var xrange = this.xrange;
+  var xmin = this.xmin; var xmax = this.xmax; var ymin = this.ymin; var ymax = this.ymax;
+
+  var centerY = height * (ymax / yrange);
+  var centerX = width  * (-xmin / xrange);   
+
+  context.save();
+  context.beginPath();
+  context.strokeStyle = "black";
+  context.lineWidth = 2;
+
+  context.moveTo(centerX, 0); // Draw the y-axis.
+  context.lineTo(centerX, height);
+  context.moveTo(0, centerY); // Draw the x-axis.
+  context.lineTo(width, centerY);
+  context.stroke();   
+
+
+  // Here we translate the canvas so (0,0) corresponds to the center. 
+  context.translate(centerX, centerY);
+
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  // Here we draw the ticks for the y-axis.  
+  for(var i = ymin+1; i < ymax; i++)
+  {
+    context.moveTo(ticksize / 2, - i * (height / yrange) );        
+    context.lineTo(-ticksize / 2, - i * (height / yrange) ); 
+    if(i != 0) context.fillText(i, - ticksize - 3, - i * (height / yrange));
+  }
+
+  // Now for the x-axis.
+  for(var i = xmin+1; i < xmax; i++)
+  {
+    context.moveTo(i * (width / xrange) , ticksize / 2 );        
+    context.lineTo(i * (width / xrange) , -ticksize / 2  ); 
+    if(i != 0) context.fillText(i, i * (width / xrange) , ticksize + 3  );
+  }
+  context.stroke(); 
+  context.restore();  
+};
+
+graph.prototype.graphFunction = function(f, color)
+{
+  var context = this.context; var width = this.canvas.width; var height = this.canvas.height;
+  var xmin = this.xmin; var xmax = this.xmax; var dx = this.dx; var ymin = this.ymin;
+  var ymax = this.ymax; var xrange = this.xrange; var yrange = this.yrange;
+
+  var centerY = height * (ymax / yrange);
+  var centerX = width  * (-xmin / xrange);  
+
+  context.save();
+  // Here we translate the canvas so (0,0) corresponds to the center. 
+  context.translate(centerX, centerY); 
+
+  context.beginPath();
+  context.strokeStyle = color;
+  context.lineWidth = 2;
+
+  // This graphs the function, f.      
+  context.moveTo(xmin * width / xrange, -f(xmin) * height / yrange);
+  for(var i= xmin; i < xmax; i+= dx)
+    context.lineTo(i * width / xrange, -f(i) * height / yrange);
+          
+  context.lineJoin = 'round';
+  context.stroke();
+  context.restore();
+}
+
+var thegraph = new graph();
+thegraph.drawAxes(); // draws the x and y axes.
+
+function sine(x) 
+{
+  return 3 * Math.sin(x);
+}
+function line(x) 
+{
+  return  3 * x;
+}
+
+// Here we graph our 2 functions.
+thegraph.graphFunction(sine, "blue");
+thegraph.graphFunction(line, "red");
+</script>
+</body>
+</html>
+
+
+
+

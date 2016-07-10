@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html>
+<head><title>Dr. Mario</title>
+</head>
+
+<body>
+<canvas id="canvas" width="256" height="480" style="border: 1px solid black;"></canvas>
+<script type="text/javascript">
+
+/* This is a javascript program for playing Dr. Mario. By Oliver Thistlethwaite. */
+
+/* Global variables.*/
+var canvas = document.getElementById("canvas");
+var context = canvas.getContext("2d");
+var theboard; // Our board class. This is needed as a global variable for the intervals.
+
+/* Flags that are set when various things are happening. */
+var evaling = 0; // Flag to set if we are evaluating the board.
+var falling; // Interval for pieces falling after deletion.
+var movingdown; // Interval for the drop timer.
+
+function board() // The class for the game.
+{
+    /* Here are the classes variables. */
+    var support, B, p_r, p_c, p_mode, p_color;
+
+    /* This is the constructor. */
+
+    var i, j;
+
+    /* We store the game pieces in a 17 by 10 array with padding. */
+    this.B = new Array(17);
+    for(i = 0; i < 17; i++)
+    {
+        this.B[i] = new Array(10);
+    }
+    for(i = 0; i < 17; i++)
+    {
+        for(j = 0; j < 10; j++)
+        {
+            this.B[i][j] = ' ';
+        }
+    }
+
+    /* Padding for the sides. */
+    for(i = 0; i < 17; i++)
+    {
+        this.B[i][0] = 'X';
+        this.B[i][9] = 'X';
+    }
+
+    /* Padding for the bottom. */
+    for(i = 0; i < 10; i++)
+    {
+        this.B[16][i] = 'X';
+    }
+
+    /* Here we initalize a support array. The purpose of this array is to
+       keep track of pieces that are supported from the left. If we place
+       a horizontal piece, the corresponding coordinate in this array
+       will have a 1 if it is the right piece.
+    */
+    this.support = new Array(17);
+    for(i = 0; i < 17; i++) this.support[i] = new Array(10);
+    for(i = 0; i < 17; i++) for(j = 0; j < 10; j++) this.support[i][j] = 0;
+
+    /* This stores the two colors in our current piece. */
+    this.p_color = new Array(2);       
+
+    /* This initalizes a particular configuration of viruses. */
+    this.B[6][5] = 'R'; this.B[6][6] = 'G';
+    this.B[7][4] = 'B'; this.B[7][5] = 'B'; this.B[7][7] = 'G'; this.B[7][8] = 'B';
+    this.B[8][2] = 'R'; this.B[8][3] = 'R'; this.B[8][5] = 'B';
+    this.B[9][2] = 'B'; this.B[9][7] = 'B'; 
+    this.B[10][4] = 'R';
+    this.B[11][1] = 'R'; this.B[11][6] = 'G';
+    this.B[12][6] = 'B'; this.B[12][7] = 'G';
+    this.B[13][3] = 'G'; this.B[13][7] = 'G';
+    this.B[14][2] = 'G'; this.B[14][3] = 'R'; this.B[14][8] = 'R';
+    this.B[15][5] = 'G'; this.B[15][6] = 'B'; this.B[15][7] = 'R';
+};
+
+/* This function animates the viruses by having them switch between 2 pngs. */
+board.prototype.animate = function()
+{
+    var i, j, counter;
+    counter = Math.floor( (Math.random() *3) + 1 );
+
+    for(i = 1; i < 16; i++)
+    {
+        for(j = 1; j < 10; j++)
+        {
+            if(this.B[i][j] == 'R')
+            {
+                counter++;
+                if(counter % 3 == 0) context.drawImage(virusr2, (j-1)*32, (i-1)*32);
+                else context.drawImage(virusr, (j-1)*32, (i-1)*32);
+            }
+            else if(this.B[i][j] == 'G')
+            {
+                counter++;
+                if(counter % 3 == 2) context.drawImage(virusg, (j-1)*32, (i-1)*32);
+                else context.drawImage(virusg2, (j-1)*32, (i-1)*32);
+            }
+            else if(this.B[i][j] == 'B')
+            {
+                counter++;
+                if(counter % 3 == 1) context.drawImage(virusb, (j-1)*32, (i-1)*32);
+                else context.drawImage(virusb2, (j-1)*32, (i-1)*32);
+            }
+        }
+    }
+    context.restore();
+};
+
+/* This function draws the board onto the canvas minus the viruses. */
+board.prototype.drawBoard = function()
+{
+    var i, j;
+
+    for(i = 1; i < 16; i++)
+    {
+        for(j = 1; j < 10; j++)
+        {
+            if(this.B[i][j] == 'r') context.drawImage(ballr, (j-1)*32, (i-1)*32);
+            else if(this.B[i][j] == 'g') context.drawImage(ballg, (j-1)*32, (i-1)*32);
+            else if(this.B[i][j] == 'b')context.drawImage(ballb, (j-1)*32, (i-1)*32);
+            else if(this.B[i][j] == ' ')context.drawImage(blank, (j-1)*32, (i-1)*32);
+        }
+    }
+};
+
+/* This functions initalizes the current game piece. */
+board.prototype.init_p = function()
+{
+    this.p_r = 1;
+    this.p_c = 4;
+
+    var rando; // We randomly select the 2 colors.
+
+    rando = Math.floor( (Math.random() *3) + 1 );
+    if(rando == 1) this.p_color[0] = 'r';
+    else if(rando == 2) this.p_color[0] = 'g';
+    else this.p_color[0] = 'b';
+
+    rando = Math.floor( (Math.random() *3) + 1 );
+    if(rando == 1) this.p_color[1] = 'r';
+    else if(rando == 2) this.p_color[1] = 'g';
+    else this.p_color[1] = 'b';
+
+    this.p_mode = 0;
+};
+
+/* This function deletes the current piece from the canvas and game array. */
+board.prototype.remove_p = function()
+{
+    if(this.p_mode%2 == 1) // Piece is vertical.
+    {
+        this.B[ this.p_r-1 ][ this.p_c ] = ' ';
+        this.B[ this.p_r ][ this.p_c ]   = ' ';
+
+        if( this.p_r > 1)
+        {
+            context.drawImage(blank, (this.p_c-1)*32, (this.p_r-2)*32);
+        }      
+        context.drawImage(blank, (this.p_c-1)*32, (this.p_r-1)*32);
+    }
+    else // Piece is horizontal.
+    {
+        this.B[ this.p_r ][ this.p_c ] = ' ';
+        this.B[ this.p_r ][ this.p_c + 1 ]   = ' ';
+
+        context.drawImage(blank, (this.p_c-1)*32, (this.p_r-1)*32);
+        context.drawImage(blank, (this.p_c)*32, (this.p_r-1)*32);
+    }
+     
+};
+
+/* This function adds the current piece to the canvas and game array. */
+board.prototype.add_p = function()
+{
+    if(this.p_mode%2 == 1) // Piece is vertical.
+    {
+
+        this.B[ this.p_r-1 ][ this.p_c ] = this.p_color[0];
+        this.B[ this.p_r ][ this.p_c ]   = this.p_color[1];
+
+        if( this.p_r > 1)
+        {
+            if(this.p_color[0] == 'r')      context.drawImage(ballr, (this.p_c-1)*32, (this.p_r-2)*32);
+            else if(this.p_color[0] == 'g') context.drawImage(ballg, (this.p_c-1)*32, (this.p_r-2)*32);
+            else if(this.p_color[0] == 'b') context.drawImage(ballb, (this.p_c-1)*32, (this.p_r-2)*32);
+        }      
+ 
+        if(this.p_color[1] == 'r')      context.drawImage(ballr, (this.p_c-1)*32, (this.p_r-1)*32);
+        else if(this.p_color[1] == 'g') context.drawImage(ballg, (this.p_c-1)*32, (this.p_r-1)*32);
+        else if(this.p_color[1] == 'b') context.drawImage(ballb, (this.p_c-1)*32, (this.p_r-1)*32); 
+    }
+    else // Piece is horizontal.
+    {
+
+        this.B[ this.p_r ][ this.p_c ]     = this.p_color[0];
+        this.B[ this.p_r ][ this.p_c + 1 ] = this.p_color[1];
+
+        if(this.p_color[0] == 'r')      context.drawImage(ballr, (this.p_c-1)*32, (this.p_r-1)*32);
+        else if(this.p_color[0] == 'g') context.drawImage(ballg, (this.p_c-1)*32, (this.p_r-1)*32);
+        else if(this.p_color[0] == 'b') context.drawImage(ballb, (this.p_c-1)*32, (this.p_r-1)*32);
+ 
+        if(this.p_color[1] == 'r')      context.drawImage(ballr, (this.p_c)*32, (this.p_r-1)*32);
+        else if(this.p_color[1] == 'g') context.drawImage(ballg, (this.p_c)*32, (this.p_r-1)*32);
+        else if(this.p_color[1] == 'b') context.drawImage(ballb, (this.p_c)*32, (this.p_r-1)*32); 
+    }  
+};
+
+/* This function tries to move the current piece down 1. */
+board.prototype.movedown = function()
+{
+    var stuck = 0; // Flag to set when we cannot move down.
+
+    if(this.p_mode%2 == 1) // Piece is vertical.
+    {
+        if(this.B[ this.p_r + 1 ][ this.p_c ] == ' ')
+        {
+            this.remove_p();
+            this.p_r++;
+            this.add_p();
+        }
+        else
+        {
+            stuck = 1;
+        }
+    }
+    else // Piece is horizontal.
+    {
+        if(this.B[ this.p_r + 1 ][ this.p_c ] == ' ' && this.B[ this.p_r + 1 ][ this.p_c + 1 ] == ' ')
+        {
+            this.remove_p();
+            this.p_r++;
+            this.add_p();
+        }
+        else
+        {
+            stuck = 1;
+        }
+    }
+
+    if(stuck == 1) // We are stuck.
+    {
+        /* Store that the right ball is supported by the left. */
+        if(this.p_mode%2 == 0) this.support[ this.p_r ][ this.p_c ] = 1;
+        
+        /* Now evaluate the board. */
+        evaling = 1;
+        this.evalBoard();
+    }
+};
+
+/* This function evaluates the board. */
+board.prototype.evalBoard = function()
+{
+    var i, j, k, killed = 0;
+
+    C = new Array(17); // This array marks pieces for deletion.
+    for(i = 0; i < 17; i++) C[i] = new Array(10);
+    for(i = 0; i < 17; i++) for(j = 0; j < 10; j++) C[i][j] = 0;
+
+    /* These loops remove all positions that have four or more in a row of the
+       same color first horizontally and then vertically.
+    */
+
+    for(i = 0; i < 17; i++)
+    {
+         var red = 0, green = 0, blue = 0;
+
+         for(j = 1; j < 10; j++)
+         {
+             if(red >= 4 && (this.B[i][j] != 'R' || this.B[i][j] != 'r'))
+             {
+                 for(k=j-red; k<j; k++) C[i][k] = 1;
+             }
+             else if(green >= 4 && (this.B[i][j] != 'G' || this.B[i][j] != 'g'))
+             {
+                 for(k=j-green; k<j; k++) C[i][k] = 1;
+             }
+             else if(blue >= 4 && (this.B[i][j] != 'B' || this.B[i][j] != 'b'))
+             {
+                 for(k=j-blue; k<j; k++) C[i][k] = 1;
+             }
+
+             if(this.B[i][j] == 'R' || this.B[i][j] == 'r') {red++; blue=0; green=0;}
+             else if(this.B[i][j] == 'G' || this.B[i][j] == 'g') {green++; blue=0; red=0;}
+             else if(this.B[i][j] == 'B' || this.B[i][j] == 'b') {blue++; green=0; red=0;}
+             else {red=0; blue=0; green=0;}
+         }
+    }
+    for(j = 1; j < 10; j++)
+    {
+         var red = 0, green = 0, blue = 0;
+
+         for(i = 0; i < 17; i++)
+         {
+             if(red >= 4 && (this.B[i][j] != 'R' || this.B[i][j] != 'r'))
+             {
+                 
+                 for(k=i-red; k<i; k++) C[k][j] = 1;
+             }
+             else if(green >= 4 && (this.B[i][j] != 'G' || this.B[i][j] != 'g'))
+             {
+                 for(k=i-green; k<i; k++) C[k][j] = 1;
+             }
+             else if(blue >= 4 && (this.B[i][j] != 'B' || this.B[i][j] != 'b'))
+             {
+                 for(k=i-blue; k<i; k++) C[k][j] = 1;
+             }
+
+             if(this.B[i][j] == 'R' || this.B[i][j] == 'r') {red++; blue=0; green=0;}
+             else if(this.B[i][j] == 'G' || this.B[i][j] == 'g') {green++; blue=0; red=0;}
+             else if(this.B[i][j] == 'B' || this.B[i][j] == 'b') {blue++; green=0; red=0;}
+             else {red=0; blue=0; green=0;}
+         }
+    }
+
+    /* Deletes the marked pieces and adjusts the support array appropriately. */
+    for(i = 0; i < 16; i++) for(j = 0; j < 9; j++)
+    {
+        if(C[i][j] == 1)
+        { 
+            this.B[i][j] = ' ';
+            this.support[i][j-1] = 0;
+            this.support[i][j] = 0;
+            killed = 1;
+        }
+    }
+
+    this.drawBoard();
+
+    if(killed == 1) // We killed some viruses.
+    {
+        /* See if there are any left and if we won. */
+        var infected = 0;
+        for(i = 0; i < 16; i++)
+        {
+            for(j = 0; j < 10; j++)
+            {
+                if(this.B[i][j] == 'R' || this.B[i][j] == 'B' || this.B[i][j] == 'G')
+                {
+                    infected = 1; break;
+                }
+            }
+            if(infected == 1) break;
+        }
+
+        if(infected == 0) // We won!
+        {
+            context.font="32px Verdana";
+            context.fillText("YOU WIN!", 48,120);
+        }
+        else // Make the remaining balls fall appropriately.
+        {    
+            falling = setInterval(function()
+            {
+               theboard.fall();    
+            }, 1000);
+        }
+    }
+    else
+    {
+        if(this.B[1][4] != ' ' || this.B[1][5] != ' ') // We lost!
+        {
+            context.font="32px Verdana";
+            context.fillText("GAME OVER!", 32 ,120);
+        }
+        else // Game will continue.
+        {
+            evaling = 0;
+            this.init_p();
+            this.add_p();
+        }
+    }
+};
+
+/* This function drops the balls appropriately after a deletion. */
+board.prototype.fall = function()
+{
+    var i, j, fell = 0;
+
+    for(i = 14; i >= 0; i--)
+    {
+        for(j = 0; j < 10; j++)
+        {
+            if(this.B[i][j] == 'r' || this.B[i][j] == 'g' || this.B[i][j] == 'b')
+            {
+                if(this.support[i][j] == 0)
+                {
+                    if(this.B[i+1][j] == ' ')
+                    {
+                        this.B[i+1][j] = this.B[i][j];
+                        this.B[i][j] = ' ';
+                        fell = 1;
+                        this.support[i+1][j] = this.support[i][j];
+                        this.support[i][j] = 0;
+                    }
+                }
+                else if(this.support[i][j] == 1)
+                {
+                    if(this.B[i+1][j] == ' ' && this.B[i+1][j+1] == ' ')
+                    {
+                        this.B[i+1][j] = this.B[i][j];
+                        this.B[i+1][j+1] = this.B[i][j+1];
+                        this.B[i][j] = ' ';
+                        this.B[i][j+1] = ' ';
+                        fell = 1;
+                        this.support[i+1][j] = this.support[i][j];
+                        this.support[i][j] = 0;
+                    }
+                    else j++;
+                }
+            }
+        }
+    }
+
+    this.drawBoard();
+
+    if(fell == 0) // Keep calling this every 1 second until no more balls drop.
+    {
+        clearInterval(falling);
+        this.evalBoard();
+    }
+};
+
+/* Function to move piece left. */
+board.prototype.moveleft = function()
+{
+    if(this.p_mode%2 == 1) // Piece is vertical.
+    {
+        if(this.B[ this.p_r ][ this.p_c-1 ] == ' ' && this.B[ this.p_r-1 ][ this.p_c-1 ] == ' ')
+        {
+            this.remove_p();
+            this.p_c--;
+            this.add_p();
+        }
+    }
+    else // Piece is horizontal.
+    {
+        if(this.B[ this.p_r ][ this.p_c-1 ] == ' ')
+        {
+            this.remove_p();
+            this.p_c--;
+            this.add_p();
+        }
+    }
+};
+
+/* Function to move piece right. */
+board.prototype.moveright = function()
+{
+    if(this.p_mode%2 == 1) // Piece is vertical.
+    {
+        if(this.B[ this.p_r ][ this.p_c+1 ] == ' ' && this.B[ this.p_r-1 ][ this.p_c+1 ] == ' ')
+        {
+            this.remove_p();
+            this.p_c++;
+            this.add_p();
+        }
+    }
+    else // Piece is horizontal.
+    {
+        if(this.B[ this.p_r ][ this.p_c+2 ] == ' ')
+        {
+            this.remove_p();
+            this.p_c++;
+            this.add_p();
+        }
+    }
+};
+
+/* Function to rotate piece. Note there are 4 modes for a piece. */
+board.prototype.rotate = function()
+{
+    var ok = 0, temp;    
+
+    this.remove_p();
+
+    /* This while loop keeps trying rotations until one fits. */
+    while(ok == 0)
+    {
+        this.p_mode = (this.p_mode + 1)%4;
+        
+        if(this.p_mode%2 == 0)
+        {
+            if(this.B[ this.p_r ][ this.p_c + 1 ] == ' ')
+            {
+                ok = 1;
+            }
+            else if(this.B[ this.p_r ][ this.p_c - 1 ] == ' ')
+            {
+                this.p_c--;
+                ok = 1;
+            } 
+        }
+        else
+        {
+            temp = this.p_color[0];
+            this.p_color[0] = this.p_color[1];
+            this.p_color[1] = temp;
+
+
+            if(this.B[ this.p_r - 1 ][ this.p_c ] == ' ')
+            {
+                ok = 1;
+            }
+            else if(this.B[ this.p_r - 1 ][ this.p_c + 1 ] == ' ')
+            {
+                this.p_c++;
+                ok = 1;
+            } 
+        }
+    }
+
+    this.add_p();
+};
+
+/* Starts the game. */
+board.prototype.play = function()
+{
+    /* Initially draw the board. */
+    this.drawBoard();
+    this.animate();
+
+    /* Initialize and add the first piece. */
+    this.init_p();
+    this.add_p();
+
+    /* Animates the viruses. */
+    setInterval(function()
+    {
+        theboard.animate();    
+    }, 3300);
+
+    /* Interval for the forced down movement. */
+    movingdown = setInterval(function()
+    {
+        if(evaling == 1) return; // If we're evaluating, we block this.
+ 
+        theboard.movedown();    
+    }, 2000);
+
+    /* Key listener. */
+    window.onkeydown = function(e)
+    {
+        if(evaling == 1) return; // If we're evaluating, we block this.
+
+        var key = e.keyCode ? e.keyCode : e.which;
+
+        if (key == 83)
+        {
+            theboard.movedown();
+
+            /* Resets the drop timer after we press down. */
+            clearInterval(movingdown);
+            movingdown = setInterval(function()
+            {
+                if(evaling == 1) return;
+ 
+                theboard.movedown();    
+            }, 2000);
+        }
+        else if (key == 65) 
+        {
+            theboard.moveleft();
+        }
+        else if (key == 68) 
+        {
+            theboard.moveright();
+        }
+        else if (key == 87) 
+        {
+            theboard.rotate();
+        }
+    }
+}
+
+
+
+/* This images needed. */
+var virusr = new Image();
+var virusg = new Image();
+var virusb = new Image();
+var virusr2 = new Image();
+var virusg2 = new Image();
+var virusb2 = new Image();
+var ballr  = new Image();
+var ballg  = new Image();
+var ballb  = new Image();
+var blank  = new Image();
+
+/* I know this looks terrible but it was the only simple way I could find to
+   ensure all the images were loaded at the start of the game.
+*/
+virusr.src = "img/virusr.png";
+virusr.onload = function () 
+{ 
+    virusg.src = "img/virusg.png";
+}
+virusg.onload = function () 
+{ 
+    virusb.src = "img/virusb.png";
+}
+virusb.onload = function () 
+{ 
+    virusr2.src = "img/virusr2.png";
+}
+virusr2.onload = function () 
+{ 
+    virusg2.src = "img/virusg2.png";
+}
+virusg2.onload = function () 
+{ 
+    virusb2.src = "img/virusb2.png";
+}
+virusb2.onload = function () 
+{ 
+    ballr.src = "img/ballr.png";
+}
+ballr.onload = function () 
+{ 
+    ballg.src = "img/ballg.png";
+}
+ballg.onload = function () 
+{ 
+    ballb.src = "img/ballb.png";
+}
+ballb.onload = function () 
+{ 
+    blank.src = "img/blank.png";
+}
+blank.onload = function () 
+{ 
+   
+    theboard = new board();
+    theboard.play();
+}
+</script>
+
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;border-color:#999;}
+.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#444;background-color:#F7FDFA;}
+.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#999;color:#fff;background-color:#26ADE4;}
+.tg .tg-yw4l{vertical-align:top}
+</style>
+<table class="tg">
+  <tr>
+    <th class="tg-yw4l">movement</th>
+    <th class="tg-yw4l">key</th>
+  </tr>
+  <tr>
+    <td class="tg-031e">left</td>
+    <td class="tg-031e">A</td>
+  </tr>
+  <tr>
+    <td class="tg-031e">right</td>
+    <td class="tg-031e">D</td>
+  </tr>
+  <tr>
+    <td class="tg-031e">down</td>
+    <td class="tg-031e">S</td>
+  </tr>
+  <tr>
+    <td class="tg-yw4l">rotate</td>
+    <td class="tg-yw4l">W</td>
+  </tr>
+</table>
+
+</body>
+</html>
+
+
+
+
