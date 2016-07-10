@@ -560,7 +560,7 @@ board.prototype.play = function()
             clearInterval(movingdown);
             movingdown = setInterval(function()
             {
-                if(evaling == 1) return;
+                if(evaling == 1) return; // If we're evaluating, we block this.
  
                 theboard.movedown();    
             }, 2000);
@@ -579,8 +579,6 @@ board.prototype.play = function()
         }
     }
 }
-
-
 
 /* This images needed. */
 var virusr = new Image();
@@ -636,9 +634,8 @@ ballb.onload = function ()
 }
 blank.onload = function () 
 { 
-   
-    theboard = new board();
-    theboard.play();
+    theboard = new board(); // Creates the board.
+    theboard.play(); // Starts the game.
 }
 </script>
 
