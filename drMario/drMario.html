@@ -57,17 +57,16 @@ function board() // The class for the game.
     /* This stores the two colors in our current piece. */
     this.p_color = new Array(2);       
 
-    /* This initalizes a particular configuration of viruses. */
-    this.B[6][5] = 'R'; this.B[6][6] = 'G';
-    this.B[7][4] = 'B'; this.B[7][5] = 'B'; this.B[7][7] = 'G'; this.B[7][8] = 'B';
-    this.B[8][2] = 'R'; this.B[8][3] = 'R'; this.B[8][5] = 'B';
-    this.B[9][2] = 'B'; this.B[9][7] = 'B'; 
-    this.B[10][4] = 'R';
-    this.B[11][1] = 'R'; this.B[11][6] = 'G';
-    this.B[12][6] = 'B'; this.B[12][7] = 'G';
-    this.B[13][3] = 'G'; this.B[13][7] = 'G';
-    this.B[14][2] = 'G'; this.B[14][3] = 'R'; this.B[14][8] = 'R';
-    this.B[15][5] = 'G'; this.B[15][6] = 'B'; this.B[15][7] = 'R';
+    /* Generates a random configuration of viruses. The expected value on a row is 2. */
+    var rando;
+    for(i = 6; i < 16; i++) for(j = 1; j < 9; j++)
+    {
+        rando = Math.floor( (Math.random() *12) + 1 );
+
+        if(rando < 2) this.B[i][j] = 'B';
+        else if (rando < 3) this.B[i][j] = 'R';
+        else if (rando > 11) this.B[i][j] = 'G';
+    }
 };
 
 /* This function animates the viruses by having them "randomly" switch between 2 pngs. */
@@ -171,7 +170,6 @@ board.prototype.add_p = function()
 {
     if(this.p_mode%2 == 1) // Piece is vertical.
     {
-
         this.B[ this.p_r-1 ][ this.p_c ] = this.p_color[0];
         this.B[ this.p_r ][ this.p_c ]   = this.p_color[1];
 
@@ -188,7 +186,6 @@ board.prototype.add_p = function()
     }
     else // Piece is horizontal.
     {
-
         this.B[ this.p_r ][ this.p_c ]     = this.p_color[0];
         this.B[ this.p_r ][ this.p_c + 1 ] = this.p_color[1];
 
@@ -415,6 +412,13 @@ board.prototype.fall = function()
     if(fell == 0) // We keep calling this function every 1 second until no more balls drop.
     {
         clearInterval(falling);
+        clearInterval(movingdown);
+        movingdown = setInterval(function()
+        {
+            if(evaling == 1) return; // If we're evaluating, we block this.
+ 
+                theboard.movedown();    
+        }, 2000);
         this.evalBoard();
     }
 };
