@@ -1,4 +1,4 @@
-# samples
+# Javascript Examples
 
 This is a collection of javascript programs.
 
