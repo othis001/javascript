@@ -408,7 +408,7 @@ board.prototype.fall = function()
 
     this.drawBoard();
 
-    if(fell == 0) // We keep calling this function every 1 second until no more balls drop.
+    if(fell == 0) // We keep calling this function every 0.5 second until no more balls drop.
     {
         clearInterval(falling);
         clearInterval(movingdown);
