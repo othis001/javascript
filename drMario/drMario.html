@@ -288,8 +288,7 @@ board.prototype.evalBoard = function()
          for(i = 0; i < 17; i++)
          {
              if(red >= 4 && (this.B[i][j] != 'R' || this.B[i][j] != 'r'))
-             {
-                 
+             {              
                  for(k=i-red; k<i; k++) C[k][j] = 1;
              }
              else if(green >= 4 && (this.B[i][j] != 'G' || this.B[i][j] != 'g'))
