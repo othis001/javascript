@@ -61,11 +61,11 @@ function board() // The class for the game.
     var rando;
     for(i = 6; i < 16; i++) for(j = 1; j < 9; j++)
     {
-        rando = Math.floor( (Math.random() *12) + 1 );
+        rando = Math.floor( (Math.random() *6) + 1 );
 
-        if(rando < 2) this.B[i][j] = 'B';
-        else if (rando < 3) this.B[i][j] = 'R';
-        else if (rando > 11) this.B[i][j] = 'G';
+        if(rando == 1) this.B[i][j] = 'B';
+        else if (rando == 2) this.B[i][j] = 'R';
+        else if (rando == 3) this.B[i][j] = 'G';
     }
 };
 
@@ -522,14 +522,16 @@ board.prototype.play = function()
     this.animate();
 
     /* Initialize and add the first piece. */
-    this.init_p();
-    this.add_p();
+  //  this.init_p();
+   // this.add_p();
+    evaling = 1;
+    this.evalBoard();
 
     /* Animates the viruses. */
     setInterval(function()
     {
         theboard.animate();    
-    }, 3300);
+    }, 3000);
 
     /* Interval for the forced down movement. */
     movingdown = setInterval(function()
@@ -660,5 +662,23 @@ blank.onload = function ()
     <td class="tg-yw4l">W</td>
   </tr>
 </table>
+<!-- Start of StatCounter Code for Default Guide -->
+<script type="text/javascript">
+var sc_project=11151255; 
+var sc_invisible=1; 
+var sc_security="242d84cc"; 
+var scJsHost = (("https:" == document.location.protocol) ?
+"https://secure." : "http://www.");
+document.write("<sc"+"ript type='text/javascript' src='" +
+scJsHost+
+"statcounter.com/counter/counter.js'></"+"script>");
+</script>
+<noscript><div class="statcounter"><a title="shopify
+analytics tool" href="http://statcounter.com/shopify/"
+target="_blank"><img class="statcounter"
+src="//c.statcounter.com/11151255/0/242d84cc/1/"
+alt="shopify analytics tool"></a></div></noscript>
+<!-- End of StatCounter Code for Default Guide -->
+
 </body>
 </html>
