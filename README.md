@@ -9,3 +9,7 @@ A Dr. Mario clone. http://www.oliverthistlethwaite.com/drmario
 ## graph
 
 A graphing program. http://www.oliverthistlethwaite.com/graph
+
+## matching
+
+A matching game. http://www.oliverthistlethwaite.com/matching.html
